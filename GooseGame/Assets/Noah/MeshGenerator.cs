@@ -6,28 +6,28 @@ using UnityEngine;
 public class MeshGenerator : MonoBehaviour
 {
     Mesh mesh;
-    MeshCollider meshCollider;
 
     Vector3[] verticies;
     int[] triangles;
 
+    public int seed;
+
     public int xSize;
     public int zSize;
 
-    public float spacing;
-    public float height;
-
-    public float lacunarity;
+    public float scale;
     public float persistance;
+    public float lacunarity;
     public int octaves;
+    public float heightMultiplier;
+    public AnimationCurve heightCurve;
 
+    public Vector2 offset;
 
-    // Start is called before the first frame update
     void Start()
     {
         mesh = new Mesh();
         GetComponent<MeshFilter>().mesh = mesh;
-        meshCollider = GetComponent<MeshCollider>();
 
         CreateShape();
         UpdateMesh();
@@ -43,12 +43,17 @@ public class MeshGenerator : MonoBehaviour
     {
         verticies = new Vector3[(xSize + 1) * (zSize + 1)];
 
+        offset = new Vector2(transform.position.x, transform.position.z);
+
+        float[,] heightMap = Noise.GenerateNoiseMap(xSize + 1, zSize + 1, seed, scale, octaves, persistance, lacunarity, offset);
+
         for (int z = 0, i = 0; z <= zSize; z++)
         {
             for (int x = 0; x <= xSize; x++)
             {
-                float y = GetOctaves(octaves, 0.3f, lacunarity, persistance, x, z) * height;
-                verticies[i] = new Vector3(x * spacing, y, z * spacing);
+                float y = heightCurve.Evaluate(heightMap[x, z]) * heightMultiplier;
+
+                verticies[i] = new Vector3(x, y, z);
                 i++;
             }
         }
@@ -73,27 +78,6 @@ public class MeshGenerator : MonoBehaviour
         }
     }
 
-    float GetOctaves(int amount, float scale, float lacunarity, float persistance, int x, int z)
-    {
-        float noiceHeight = 0;
-        float frequency = 1;
-        float amplitude = 1;
-
-        for (int i = 0; i < amount; i++)
-        {
-            float sampleX = x * scale * frequency;
-            float sampleZ = z * scale * frequency;
-
-            float perlinValue = Mathf.PerlinNoise(sampleX, sampleZ);
-            noiceHeight += perlinValue * amplitude;
-
-            frequency *= lacunarity;
-            amplitude *= persistance;
-        }
-
-        return noiceHeight;
-    }
-
     void UpdateMesh()
     {
         mesh.Clear();
@@ -102,7 +86,22 @@ public class MeshGenerator : MonoBehaviour
         mesh.triangles = triangles;
 
         mesh.RecalculateNormals();
+    }
 
-        meshCollider.sharedMesh = mesh;
+    private void OnValidate()
+    {
+        if (xSize < 1) xSize = 1;
+        if (zSize < 1) zSize = 1;
+
+        if (scale > 100) scale = 100;
+        if (scale < 5) scale = 5;
+
+        if (persistance > 1) persistance = 1;
+        if (persistance < 0) persistance = 0;
+
+        if (lacunarity > 5) lacunarity = 10;
+        if (lacunarity < 1) lacunarity = 1;
+
+        if (octaves < 0) octaves = 0;
     }
 }
