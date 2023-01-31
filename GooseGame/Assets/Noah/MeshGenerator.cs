@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -12,17 +13,34 @@ public class MeshGenerator : MonoBehaviour
 
     public int seed;
 
-    public int xSize;
-    public int zSize;
+    public const int chunkSize = 128;
 
-    public float scale;
-    public float persistance;
-    public float lacunarity;
-    public int octaves;
-    public float heightMultiplier;
-    public AnimationCurve heightCurve;
+    [SerializeField]
+    float scale;
 
-    public Vector2 offset;
+    [SerializeField]
+    [Range(0, 1)]
+    float persistance;
+
+    [SerializeField]
+    [Range(1, 5)]
+    float lacunarity;
+
+    [SerializeField]
+    int octaves;
+
+    [SerializeField]
+    float heightMultiplier;
+
+    [SerializeField]
+    AnimationCurve heightCurve;
+
+    [SerializeField]
+    [Range(0, 4)]
+    int meshSimplification = 1;
+
+    [SerializeField]
+    Vector2 offset;
 
     void Start()
     {
@@ -41,15 +59,17 @@ public class MeshGenerator : MonoBehaviour
 
     void CreateShape()
     {
-        verticies = new Vector3[(xSize + 1) * (zSize + 1)];
+        int meshSimplificationValue = (int)Mathf.Pow(2f, meshSimplification);
+        int verticiesRowAmount = (chunkSize / meshSimplificationValue) + 1;
+        verticies = new Vector3[verticiesRowAmount * verticiesRowAmount];
 
         offset = new Vector2(transform.position.x, transform.position.z);
 
-        float[,] heightMap = Noise.GenerateNoiseMap(xSize + 1, zSize + 1, seed, scale, octaves, persistance, lacunarity, offset);
+        float[,] heightMap = Noise.GenerateNoiseMap(chunkSize + 1, chunkSize + 1, seed, scale, octaves, persistance, lacunarity, offset, 1);
 
-        for (int z = 0, i = 0; z <= zSize; z++)
+        for (int z = 0, i = 0; z <= chunkSize; z+= meshSimplificationValue)
         {
-            for (int x = 0; x <= xSize; x++)
+            for (int x = 0; x <= chunkSize; x+= meshSimplificationValue)
             {
                 float y = heightCurve.Evaluate(heightMap[x, z]) * heightMultiplier;
 
@@ -58,24 +78,26 @@ public class MeshGenerator : MonoBehaviour
             }
         }
 
-        triangles = new int[xSize * zSize * 6];
-        for (int z = 0, quad = 0, tri = 0; z < zSize; z++)
+        int quadsRowAmount = chunkSize / meshSimplificationValue;
+        triangles = new int[quadsRowAmount * quadsRowAmount * 6];
+        for (int z = 0, quad = 0, tri = 0; z < quadsRowAmount; z++)
         {
-            for (int x = 0; x < xSize; x++)
+            for (int x = 0; x < quadsRowAmount; x++)
             {
                 triangles[tri + 0] = quad + 0;
-                triangles[tri + 1] = quad + xSize + 1;
+                triangles[tri + 1] = quad + quadsRowAmount + 1;
                 triangles[tri + 2] = quad + 1;
 
                 triangles[tri + 3] = quad + 1;
-                triangles[tri + 4] = quad + xSize + 1;
-                triangles[tri + 5] = quad + xSize + 2;
+                triangles[tri + 4] = quad + quadsRowAmount + 1;
+                triangles[tri + 5] = quad + quadsRowAmount + 2;
 
                 tri += 6;
                 quad++;
             }
             quad++;
         }
+        
     }
 
     void UpdateMesh()
@@ -90,17 +112,10 @@ public class MeshGenerator : MonoBehaviour
 
     private void OnValidate()
     {
-        if (xSize < 1) xSize = 1;
-        if (zSize < 1) zSize = 1;
+        
 
         if (scale > 100) scale = 100;
         if (scale < 5) scale = 5;
-
-        if (persistance > 1) persistance = 1;
-        if (persistance < 0) persistance = 0;
-
-        if (lacunarity > 5) lacunarity = 10;
-        if (lacunarity < 1) lacunarity = 1;
 
         if (octaves < 0) octaves = 0;
     }

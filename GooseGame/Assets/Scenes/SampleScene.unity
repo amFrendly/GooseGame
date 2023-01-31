@@ -246,7 +246,7 @@ Transform:
   m_GameObject: {fileID: 816408067}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 15, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -265,37 +265,63 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   seed: 0
-  xSize: 100
-  zSize: 100
-  scale: 30
-  persistance: 0.5
+  scale: 70
+  persistance: 1
   lacunarity: 3
   octaves: 3
-  heightMultiplier: 1
+  heightMultiplier: 20
   heightCurve:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
-      time: -1
-      value: -1
-      inSlope: 1
-      outSlope: 1
-      tangentMode: 34
+      time: -1.1904135
+      value: -0.09373966
+      inSlope: 0.04484431
+      outSlope: 0.04484431
+      tangentMode: 0
       weightedMode: 0
       inWeight: 0
-      outWeight: 0.33333334
+      outWeight: 1
     - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 1
-      outSlope: 1
-      tangentMode: 34
+      time: -0.35964227
+      value: 0.11181636
+      inSlope: 0.092895955
+      outSlope: 0.092895955
+      tangentMode: 0
       weightedMode: 0
       inWeight: 0.33333334
+      outWeight: 1
+    - serializedVersion: 3
+      time: 0.026792176
+      value: 0.44943133
+      inSlope: 0.123261586
+      outSlope: 0.123261586
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 1
+    - serializedVersion: 3
+      time: 0.56285644
+      value: 0.8149583
+      inSlope: 0.06284792
+      outSlope: 0.06284792
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.64725876
+    - serializedVersion: 3
+      time: 0.9906701
+      value: 1.2519704
+      inSlope: 0.012421971
+      outSlope: 0.012421971
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.7598738
       outWeight: 0
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  meshSimplification: 0
   offset: {x: 0, y: 0}
 --- !u!23 &816408071
 MeshRenderer:
