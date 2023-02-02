@@ -64,7 +64,7 @@ public class ChunkLoader : MonoBehaviour
         {
             Transform chunk = transform.GetChild(i);
 
-            if (Vector3.Distance(chunk.position, player.position) > loadDistance) continue;
+            if (Vector3.Distance(chunk.position, new Vector3(player.position.x, 0, player.position.z)) > loadDistance) continue;
             ChunkConnection chunkConnection = chunk.GetComponent<Chunk>().connection;
 
             if (!chunkConnection.CanConnect()) continue;
