@@ -9,6 +9,7 @@ public static class Noise
     {
         float[,] noiseMap = new float[width, height];
         Vector2[] octaveOffset = new Vector2[octaves];
+
         System.Random rng = new System.Random(seed);
         for (int i = 0; i < octaves; i++)
         {
@@ -52,14 +53,6 @@ public static class Noise
                 if (noiseHeight < minNoiseHeight) minNoiseHeight = noiseHeight;
 
                 noiseMap[x, y] = noiseHeight;
-            }
-        }
-
-        for (int z = 0; z < height; z++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                //noiseMap[x, z] = Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[x, z]);
             }
         }
 

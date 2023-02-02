@@ -112,8 +112,6 @@ public class MeshGenerator : MonoBehaviour
 
     private void OnValidate()
     {
-        
-
         if (scale > 100) scale = 100;
         if (scale < 5) scale = 5;
 
