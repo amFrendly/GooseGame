@@ -42,101 +42,106 @@ public class ChunkLoader : MonoBehaviour
     GameObject chunk;
 
     [SerializeField]
-    int loadDistance;
+    int loadChunksAmount;
     #endregion
+
+    Vector2 oldPos;
+
+    const float moveThresholdForChunkUpdate = 25;
+    const float sqrMoveThresholdForChunkUpdate = moveThresholdForChunkUpdate * moveThresholdForChunkUpdate;
+
+    Vector2 currentChunkCoord;
 
     private void Start()
     {
-        CreateChunk(transform.position);
+        StartLoadChunks();
+        Vector2 playerPos = new Vector2(player.position.x, player.position.z);
+        oldPos = playerPos;
     }
 
-    public void Update()
+    void Update()
     {
-        LoadNewChunks2();
-        //LoadNewChunks(2); 
-    }
+        int currentChunkCoordX = Mathf.RoundToInt((player.position.x - chunkSize / 2) / chunkSize);
+        int currentChunkCoordY = Mathf.RoundToInt((player.position.z - chunkSize / 2) / chunkSize);
+        currentChunkCoord = new Vector2(currentChunkCoordX, currentChunkCoordY);
 
-
-    void LoadNewChunks2()
-    {
-        transform.position = new Vector3();
-        for (int i = 0; i < transform.childCount; i++)
+        Vector2 playerPos = new Vector2(player.position.x, player.position.z);
+        if ((oldPos - playerPos).sqrMagnitude > sqrMoveThresholdForChunkUpdate)
         {
-            Transform chunk = transform.GetChild(i);
-
-            if (Vector3.Distance(chunk.position, new Vector3(player.position.x, 0, player.position.z)) > loadDistance) continue;
-            ChunkConnection chunkConnection = chunk.GetComponent<Chunk>().connection;
-
-            if (!chunkConnection.CanConnect()) continue;
-            ChunkConnection.Direction direction = chunkConnection.NearestConnection(player, chunkSize, out Vector3 closest);
-            Chunk newChunk = CreateChunk(transform.position + closest);
-            //chunkConnection.Connect(direction, ref newChunk.connection);
-            newChunk.connection.UpdateConnection(transform, chunkSize);
+            oldPos = playerPos;
+            LoadChunks();
         }
     }
 
-    void LoadNewChunks(int chunkView)
+    Dictionary<Vector2, Chunk> chunks = new Dictionary<Vector2, Chunk>();
+
+    private void StartLoadChunks()
     {
-        int posX = (int)player.position.x / chunkSize;
-        int posZ = (int)player.position.z / chunkSize;
-        Vector3 center = new Vector3(posX, 0, posZ);
-
-        chunkView *= chunkView;
-        chunkView++;
-
-        for(int x = 0; x < chunkView; x++)
+        for (int yOffset = -loadChunksAmount; yOffset <= loadChunksAmount; yOffset++)
         {
-            for(int z = 0; z < chunkView; z++)
+            for (int xOffset = -loadChunksAmount; xOffset <= loadChunksAmount; xOffset++)
             {
-                Vector3 checkPosition = (new Vector3(x, 0, z) + center) * chunkSize;
-                if(ChunkEmpty(checkPosition))
+                Vector2 viewChunkCoord = new Vector2(currentChunkCoord.x + xOffset, currentChunkCoord.y + yOffset);
+
+                if (!chunks.ContainsKey(viewChunkCoord))
                 {
-                    CreateChunk(checkPosition);
+                    CreateChunk(new Vector3(viewChunkCoord.x, 0, viewChunkCoord.y));
+                }
+            }
+        }
+
+        for (int yOffset = -loadChunksAmount; yOffset <= loadChunksAmount; yOffset++)
+        {
+            for (int xOffset = -loadChunksAmount; xOffset <= loadChunksAmount; xOffset++)
+            {
+                Vector2 viewChunkCoord = new Vector2(currentChunkCoord.x + xOffset, currentChunkCoord.y + yOffset);
+
+                if (chunks.ContainsKey(viewChunkCoord))
+                {
+                    float distance = Vector2.Distance(currentChunkCoord, viewChunkCoord);
+                    chunks[viewChunkCoord].SwapMesh(distance);
                 }
             }
         }
     }
-
-    bool ChunkEmpty(Vector3 position)
+    private void LoadChunks()
     {
-        for(int i = 0; i < transform.childCount; i++)
+        for (int yOffset = -loadChunksAmount; yOffset <= loadChunksAmount; yOffset++)
         {
-            Transform chunk = transform.GetChild(i);
-            if (chunk.position == position) return false;
+            for (int xOffset = -loadChunksAmount; xOffset <= loadChunksAmount; xOffset++)
+            {
+                Vector2 viewChunkCoord = new Vector2(currentChunkCoord.x + xOffset, currentChunkCoord.y + yOffset);
+
+                if (chunks.ContainsKey(viewChunkCoord))
+                {
+                    float distance = Vector2.Distance(currentChunkCoord, viewChunkCoord);
+                    chunks[viewChunkCoord].SwapMesh(distance);
+                }
+                else
+                {
+                    CreateChunk(new Vector3(viewChunkCoord.x, 0, viewChunkCoord.y));
+                }
+            }
         }
-        return true;
+
     }
 
     private Chunk CreateChunk(Vector3 position)
     {
-        GameObject newChunk = Instantiate(chunk, transform);
-        newChunk.transform.position = position;
+        Chunk newChunk = Instantiate(chunk, transform).GetComponent<Chunk>();
+        chunks.Add(new Vector2(position.x, position.z), newChunk);
+        newChunk.transform.position = position * chunkSize;
         Chunk chunkComponent = newChunk.GetComponent<Chunk>();
         chunkComponent.player = player;
-        chunkComponent.SetChunkInformation(seed, scale, octaves, persistance, lacunarity, heightMultiplier, heightCurve, meshSimplification);
-        chunkComponent.CreateShape();
+        chunkComponent.SetChunkInformation(seed, scale, octaves, persistance, lacunarity, heightMultiplier, heightCurve);
         return chunkComponent;
-    }
-
-    public void GenerateMap(int size)
-    {
-        for (int x = 0; x < size; x++)
-        {
-            for (int z = 0; z < size; z++)
-            {
-                GameObject newChunk = Instantiate(chunk, transform);
-                newChunk.transform.position = new Vector3(x * chunkSize, 0, z * chunkSize);
-                Chunk chunkComponent = newChunk.GetComponent<Chunk>();
-                chunkComponent.SetChunkInformation(seed, scale, octaves, persistance, lacunarity, heightMultiplier, heightCurve, meshSimplification);
-            }
-        }
     }
 
     private void OnValidate()
     {
-        if (loadDistance < 1)
+        if (loadChunksAmount < 1)
         {
-            loadDistance = 1;
+            loadChunksAmount = 1;
         }
     }
 }
