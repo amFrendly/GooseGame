@@ -140,7 +140,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 2010355679}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e056a0cb11d3f48489ddfac207867fbe, type: 3}
   m_Name: 
@@ -358,11 +358,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   seed: 0
-  scale: 1000
+  scale: 500
   persistance: 0.5
   lacunarity: 3
-  octaves: 4
-  heightMultiplier: 200
+  octaves: 3
+  heightMultiplier: 100
   heightCurve:
     serializedVersion: 2
     m_Curve:
@@ -417,7 +417,7 @@ MonoBehaviour:
   meshSimplification: 1
   player: {fileID: 160663786}
   chunk: {fileID: 6568105763950875629, guid: df9a374d3c8485f498cf25fcb9d456b4, type: 3}
-  loadDistance: 2000
+  loadDistance: 400
 --- !u!4 &900061009
 Transform:
   m_ObjectHideFlags: 0
@@ -551,6 +551,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Goose
       objectReference: {fileID: 0}
+    - target: {fileID: 2452835226707710622, guid: 476cf8d81aae7e542956b3d297bdfd0e, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2452835226707710688, guid: 476cf8d81aae7e542956b3d297bdfd0e, type: 3}
+      propertyPath: m_Constraints
+      value: 126
+      objectReference: {fileID: 0}
     - target: {fileID: 2452835226707710691, guid: 476cf8d81aae7e542956b3d297bdfd0e, type: 3}
       propertyPath: m_RootOrder
       value: 1
@@ -595,6 +603,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2452835226707710694, guid: 476cf8d81aae7e542956b3d297bdfd0e, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2452835226707710695, guid: 476cf8d81aae7e542956b3d297bdfd0e, type: 3}
       propertyPath: mousePos
       value: 
@@ -603,6 +615,10 @@ PrefabInstance:
       propertyPath: boresight
       value: 
       objectReference: {fileID: 1680919205}
+    - target: {fileID: 2452835226707710695, guid: 476cf8d81aae7e542956b3d297bdfd0e, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2452835226707710695, guid: 476cf8d81aae7e542956b3d297bdfd0e, type: 3}
       propertyPath: mouseFlight
       value: 
