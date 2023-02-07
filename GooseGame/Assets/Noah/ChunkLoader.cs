@@ -42,7 +42,7 @@ public class ChunkLoader : MonoBehaviour
     GameObject chunk;
 
     [SerializeField]
-    int loadChunksAmount;
+    float loadChunksDistance;
     #endregion
 
     Vector2 oldPos;
@@ -77,6 +77,8 @@ public class ChunkLoader : MonoBehaviour
 
     private void StartLoadChunks()
     {
+        int loadChunksAmount = Mathf.RoundToInt(loadChunksDistance / chunkSize);
+
         for (int yOffset = -loadChunksAmount; yOffset <= loadChunksAmount; yOffset++)
         {
             for (int xOffset = -loadChunksAmount; xOffset <= loadChunksAmount; xOffset++)
@@ -106,6 +108,7 @@ public class ChunkLoader : MonoBehaviour
     }
     private void LoadChunks()
     {
+        int loadChunksAmount = Mathf.RoundToInt(loadChunksDistance / chunkSize);
         for (int yOffset = -loadChunksAmount; yOffset <= loadChunksAmount; yOffset++)
         {
             for (int xOffset = -loadChunksAmount; xOffset <= loadChunksAmount; xOffset++)
@@ -114,7 +117,7 @@ public class ChunkLoader : MonoBehaviour
 
                 if (chunks.ContainsKey(viewChunkCoord))
                 {
-                    float distance = Vector2.Distance(currentChunkCoord, viewChunkCoord);
+                    float distance = Vector2.Distance(currentChunkCoord * chunkSize, viewChunkCoord * chunkSize);
                     chunks[viewChunkCoord].SwapMesh(distance);
                 }
                 else
@@ -139,9 +142,9 @@ public class ChunkLoader : MonoBehaviour
 
     private void OnValidate()
     {
-        if (loadChunksAmount < 1)
+        if (loadChunksDistance < 1)
         {
-            loadChunksAmount = 1;
+            loadChunksDistance = 1;
         }
     }
 }

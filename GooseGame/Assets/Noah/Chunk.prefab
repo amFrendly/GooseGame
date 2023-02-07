@@ -49,13 +49,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   meshSimplification: 0
-  meshStartSimplifiaction: 3
-  levelOfDetailDistances:
+  swapDetailOnDistance:
   - 0
-  - 10
-  - 20
-  - 30
-  - 50
+  - 400
+  - 800
 --- !u!33 &7472673700152389837
 MeshFilter:
   m_ObjectHideFlags: 0

@@ -10,18 +10,17 @@ public class Chunk : MonoBehaviour
     [Range(0, 4)]
     int meshSimplification = 1;
 
-    [SerializeField]
-    int meshStartSimplifiaction;
+    int meshStartSimplifiaction = 2;
 
     [NonSerialized]
     public Transform player;
 
-    Mesh[] simplify = new Mesh[5];
+    Mesh[] simplify = new Mesh[3];
     int selected = 0;
     int lastSelected = -1;
 
     [SerializeField]
-    float[] levelOfDetailDistances;
+    float[] swapDetailOnDistance;
 
     public ChunkData chunkData;
     public NoiseData noiseData;
@@ -33,9 +32,9 @@ public class Chunk : MonoBehaviour
 
     private void OnValidate()
     {
-        if (levelOfDetailDistances.Length > 5)
+        if (swapDetailOnDistance.Length > 3)
         {
-            levelOfDetailDistances = new float[5];
+            swapDetailOnDistance = new float[3];
         }
     }
 
@@ -43,7 +42,7 @@ public class Chunk : MonoBehaviour
     {
         for (int i = simplify.Length - 1; i >= 0; i--)
         {
-            if (distance >= levelOfDetailDistances[i])
+            if (distance >= swapDetailOnDistance[i])
             {
                 selected = i;
             }
