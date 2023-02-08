@@ -6,7 +6,7 @@ public class FlightHUD : MonoBehaviour
 {
     // Start is called before the first frame update
     [Header("Components")]
-    [SerializeField] private ManualFlightInput mouseFlight = null;
+    [SerializeField] private ManualFlightInput manualFlightInput = null;
 
     [Header("HUD Elements")]
     [SerializeField] private RectTransform boresight = null;
@@ -16,21 +16,21 @@ public class FlightHUD : MonoBehaviour
 
     private void Awake()
     {
-        if (mouseFlight == null)
+        if (manualFlightInput == null)
             Debug.LogError(name + ": Hud - Mouse Flight Controller not assigned!");
 
-        playerCam = mouseFlight.GetComponentInChildren<Camera>();
+        playerCam = manualFlightInput.GetComponentInChildren<Camera>();
 
         if (playerCam == null)
             Debug.LogError(name + ": Hud - No camera found on assigned Mouse Flight Controller!");
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
-        if (mouseFlight == null || playerCam == null)
+        if (manualFlightInput == null || playerCam == null)
             return;
 
-        UpdateGraphics(mouseFlight);
+        UpdateGraphics(manualFlightInput);
     }
 
     private void UpdateGraphics(ManualFlightInput controller)
@@ -50,7 +50,7 @@ public class FlightHUD : MonoBehaviour
 
     public void SetReferenceMouseFlight(ManualFlightInput controller)
     {
-        mouseFlight = controller;
+        manualFlightInput = controller;
     }
 }
 

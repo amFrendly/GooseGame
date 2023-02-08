@@ -140,7 +140,7 @@ public class ManualFlightInput : MonoBehaviour
         bool rollOverride = false;
         bool pitchOverride = false;
 
-        float keyboardRoll = Input.GetAxis("Horizontal");
+        float keyboardRoll = -Input.GetAxis("Horizontal");
         if (Mathf.Abs(keyboardRoll) > .25f)
         {
             rollOverride = true;
