@@ -53,6 +53,8 @@ MonoBehaviour:
   - 0
   - 400
   - 800
+  tryFit:
+  - {fileID: 6184397222337772909, guid: 43a927ac0cc861348a1238f468b0302b, type: 3}
 --- !u!33 &7472673700152389837
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -110,7 +112,7 @@ MeshCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 674519064550767584}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 94d33b590e26fe745826a011498c7507, type: 2}
   m_IsTrigger: 0
   m_Enabled: 0
   serializedVersion: 4

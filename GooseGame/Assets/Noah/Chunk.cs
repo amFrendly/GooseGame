@@ -2,7 +2,11 @@ using UnityEngine;
 using System;
 using System.Threading;
 using System.Collections.Generic;
-using System.Collections;
+using UnityEngine.UIElements;
+using UnityEditor.UIElements;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class Chunk : MonoBehaviour
 {
@@ -22,12 +26,38 @@ public class Chunk : MonoBehaviour
     [SerializeField]
     float[] swapDetailOnDistance;
 
+    [SerializeField]
+    List<GameObject> tryFit = new List<GameObject>();
+
     public ChunkData chunkData;
     public NoiseData noiseData;
+
+    bool once = true;
 
     private void Update()
     {
         CheckThreadQueue();
+
+        if (!once) return;
+        if (chunkData.heightMap == null) return;
+        for (int i = tryFit.Count - 1; i >= 0; i--)
+        {
+            GameObject tryFitItem = tryFit[i];
+            Vector2 size = tryFitItem.GetComponent<MeshCollider>().sharedMesh.bounds.size;
+            bool fit = chunkData.FindFlatSPace(out Vector3? position, size, noiseData.heightMultiplier, 0.0005f);
+            if (fit)
+            {
+                Debug.Log($"The Size {"X:" + size.x + "Z:" + size.y + (fit ? $" Fit At Position {"X:" + position.Value.x + " Y:" + position.Value.y + "Z:" + position.Value.z}" : "Does Not Fit")}");
+                Instantiate(tryFitItem, transform).transform.position = transform.position + position.Value;
+            }
+        }
+        once = false;
+    }
+
+    private void Awake()
+    {
+        chunkDataInfoQueue = new Queue<ChunkThreadInfo<ChunkData>>();
+        chunkMeshInfoQueue = new Queue<ChunkThreadInfo<MeshData?>>();
     }
 
     private void OnValidate()
@@ -68,12 +98,20 @@ public class Chunk : MonoBehaviour
             return;
         }
     }
+    public void SetChunkInformation(int seed, float scale, int octaves, float persistance, float lacunarity, float heightMultiplier, AnimationCurve heightCurve)
+    {
+        Vector2 offset = new Vector2(transform.position.x, transform.position.z);
 
+        noiseData = new NoiseData(seed, scale, octaves, persistance, lacunarity, heightMultiplier, heightCurve, offset);
+        meshSimplification = meshStartSimplifiaction;
+        RequestChunkData(OnChunkDataRecieved);
+    }
+
+    #region Collider
     const int colliderSimplify = 0;
     public void OnColliderMeshRecieved(MeshData? meshData)
     {
         MeshCollider meshCollider = transform.GetComponent<MeshCollider>();
-        meshCollider.enabled = true;
 
         if (meshCollider.sharedMesh != null) return;
 
@@ -88,13 +126,12 @@ public class Chunk : MonoBehaviour
             meshCollider.sharedMesh = simplify[colliderSimplify];
         }
     }
-
     public void ActivateCollder()
     {
         MeshCollider meshCollider = transform.GetComponent<MeshCollider>();
         meshCollider.enabled = true;
 
-        if(meshCollider.sharedMesh == null)
+        if (meshCollider.sharedMesh == null)
         {
             int oldMeshSimplification = meshSimplification;
             meshSimplification = colliderSimplify;
@@ -103,27 +140,15 @@ public class Chunk : MonoBehaviour
         }
 
     }
-
     public void DeactivateCollder()
     {
         MeshCollider meshCollider = transform.GetComponent<MeshCollider>();
         meshCollider.enabled = false;
     }
-
-
-    public void SetChunkInformation(int seed, float scale, int octaves, float persistance, float lacunarity, float heightMultiplier, AnimationCurve heightCurve)
-    {
-        Vector2 offset = new Vector2(transform.position.x, transform.position.z);
-
-        noiseData = new NoiseData(seed, scale, octaves, persistance, lacunarity, heightMultiplier, heightCurve, offset);
-        meshSimplification = meshStartSimplifiaction;
-        RequestChunkData(OnChunkDataRecieved);
-    }
-
+    #endregion
     #region Mesh Creation
     private Vector3[] GetVerticies(float[,] heightMap, int meshSimplificationValue)
     {
-        AnimationCurve heightCurve = new AnimationCurve(noiseData.heightCurve.keys);
         int verticiesRowAmount = (ChunkLoader.chunkSize / meshSimplificationValue) + 1;
         Vector3[] verticies = new Vector3[verticiesRowAmount * verticiesRowAmount];
         for (int z = 0, i = 0; z <= ChunkLoader.chunkSize; z += meshSimplificationValue)
@@ -132,7 +157,7 @@ public class Chunk : MonoBehaviour
             {
                 lock (noiseData.heightCurve)
                 {
-                    float y = heightCurve.Evaluate(heightMap[x, z]) * noiseData.heightMultiplier;
+                    float y = heightMap[x, z] * noiseData.heightMultiplier;
                     verticies[i] = new Vector3(x, y, z);
                     i++;
                 }
@@ -191,7 +216,7 @@ public class Chunk : MonoBehaviour
 
     private ChunkData GetChunkData()
     {
-        float[,] heightMap = Noise.GenerateNoiseMap(ChunkLoader.chunkSize + 1, ChunkLoader.chunkSize + 1, noiseData.seed, noiseData.scale, noiseData.octaves, noiseData.persistance, noiseData.lacunarity, noiseData.offset);
+        float[,] heightMap = Noise.GenerateNoiseMap(ChunkLoader.chunkSize + 1, ChunkLoader.chunkSize + 1, noiseData.seed, noiseData.scale, noiseData.octaves, noiseData.persistance, noiseData.lacunarity, noiseData.heightCurve, noiseData.offset);
         ChunkData chunkData = new ChunkData(heightMap);
         return chunkData;
     }
@@ -240,7 +265,6 @@ public class Chunk : MonoBehaviour
     private void MeshThread(Action<MeshData?> callback)
     {
         MeshData? meshData = CreateShape();
-
         lock (chunkDataInfoQueue)
         {
             chunkMeshInfoQueue.Enqueue(new ChunkThreadInfo<MeshData?>(callback, meshData));
@@ -317,5 +341,47 @@ public struct ChunkData
     public ChunkData(float[,] heightMap)
     {
         this.heightMap = heightMap;
+    }
+    public bool FindFlatSPace(out Vector3? chunkPosition, Vector3 size, float heightMultiplier, float tolerance)
+    {
+        chunkPosition = new Vector3();
+        for (int y = 0; y < heightMap.GetLength(1) - size.y; y++)
+        {
+            for (int x = 0; x < heightMap.GetLength(0) - size.x; x++)
+            {
+                float height = heightMap[x, y] * heightMultiplier;
+                Vector2 testPosition = new Vector2(x, y);
+                if (FlatSpace(testPosition, size, tolerance))
+                {
+                    chunkPosition = new Vector3(testPosition.x, height, testPosition.y) + new Vector3(size.x / 2, 0, size.z / 2);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    private bool FlatSpace(Vector2 position, Vector2 fitSpace, float tolerance)
+    {
+        int startX = (int)position.x;
+        int startY = (int)position.y;
+
+        int endX = (int)fitSpace.x + startX;
+        int endY = (int)fitSpace.y + startY;
+
+        float startHeight = Mathf.Abs(heightMap[startX, startY]);
+
+        for (int y = startY; y < endY; y++)
+        {
+            for (int x = startX; x < endX; x++)
+            {
+                float testHeight = Mathf.Abs(heightMap[x, y]);
+                float testTolerance = Mathf.Abs(testHeight - startHeight);
+                if (testTolerance > tolerance)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }
