@@ -54,7 +54,11 @@ MonoBehaviour:
   - 400
   - 800
   tryFit:
-  - {fileID: 6184397222337772909, guid: 43a927ac0cc861348a1238f468b0302b, type: 3}
+  - gameObject: {fileID: 6184397222337772909, guid: 43a927ac0cc861348a1238f468b0302b, type: 3}
+    minimumSpacingForThis: 20
+    minimumSpacingForOther: 0
+    amount: 2
+    steepTolerance: 0.0005
 --- !u!33 &7472673700152389837
 MeshFilter:
   m_ObjectHideFlags: 0

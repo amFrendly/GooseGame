@@ -27,7 +27,7 @@ public class Chunk : MonoBehaviour
     float[] swapDetailOnDistance;
 
     [SerializeField]
-    List<GameObject> tryFit = new List<GameObject>();
+    List<ChunkObject> tryFit = new List<ChunkObject>();
 
     public ChunkData chunkData;
     public NoiseData noiseData;
@@ -38,19 +38,31 @@ public class Chunk : MonoBehaviour
     {
         CheckThreadQueue();
 
+        /*
         if (!once) return;
         if (chunkData.heightMap == null) return;
+        
         for (int i = tryFit.Count - 1; i >= 0; i--)
         {
-            GameObject tryFitItem = tryFit[i];
+            GameObject tryFitItem = tryFit[i].gameObject;
             Vector2 size = tryFitItem.GetComponent<MeshCollider>().sharedMesh.bounds.size;
-            bool fit = chunkData.FindFlatSPace(out Vector3? position, size, noiseData.heightMultiplier, 0.0005f);
+            bool fit = chunkData.FindFlatSpace(out Vector3? position, size, noiseData.heightMultiplier, 0.0005f, new Vector2());
             if (fit)
             {
                 Debug.Log($"The Size {"X:" + size.x + "Z:" + size.y + (fit ? $" Fit At Position {"X:" + position.Value.x + " Y:" + position.Value.y + "Z:" + position.Value.z}" : "Does Not Fit")}");
                 Instantiate(tryFitItem, transform).transform.position = transform.position + position.Value;
             }
         }
+        */
+
+        if (!once) return;
+        if (chunkData.heightMap == null) return;
+        for (int i = tryFit.Count - 1; i >= 0; i--)
+        {
+            chunkData.AddObject(tryFit[i], transform, noiseData.heightMultiplier);
+        }
+
+
         once = false;
     }
 
@@ -337,29 +349,133 @@ public struct ChunkData
 {
     [NonSerialized]
     public float[,] heightMap;
+    [NonSerialized]
+    public Dictionary<ChunkObject, GameObject[]> chunkObjects;
 
     public ChunkData(float[,] heightMap)
     {
         this.heightMap = heightMap;
+        chunkObjects = new Dictionary<ChunkObject, GameObject[]>();
     }
-    public bool FindFlatSPace(out Vector3? chunkPosition, Vector3 size, float heightMultiplier, float tolerance)
+
+    public void AddObject(ChunkObject chunkObject, Transform parent, float heightMultiplier)
     {
-        chunkPosition = new Vector3();
-        for (int y = 0; y < heightMap.GetLength(1) - size.y; y++)
+        if (chunkObjects.ContainsKey(chunkObject))
         {
-            for (int x = 0; x < heightMap.GetLength(0) - size.x; x++)
+            return;
+        }
+        else
+        {
+            CheckToAdd(chunkObject, parent, heightMultiplier);
+        }
+    }
+
+    private void CheckToAdd(ChunkObject chunkObject, Transform parent, float heightMultiplier)
+    {
+        GameObject[] gameObjects = new GameObject[chunkObject.amount];
+        chunkObjects.Add(chunkObject, gameObjects);
+        Vector2 startAt = new Vector2();
+        Vector3 size = chunkObject.gameObject.GetComponent<MeshFilter>().sharedMesh.bounds.size;
+        Vector2 endedAt = startAt;
+
+        for (int i = 0; i < gameObjects.Length; i++)
+        {
+
+            bool found = false;
+            do
             {
+                found = FindFlatSpace(out Vector3? chunkPos, size, heightMultiplier, chunkObject.steepTolerance, startAt);
+
+                if(!found)
+                {
+                    return;
+                }
+                Vector3 worldPosition = chunkPos.Value + parent.position + new Vector3(size.x / 2, 0, size.z / 2);
+                if (FarEnoughAway(worldPosition, gameObjects, chunkObject.minimumSpacingForThis) && found)
+                {
+                    GameObject newGameobject = GameObject.Instantiate(chunkObject.gameObject, parent);
+                    newGameobject.transform.position = worldPosition;
+                    gameObjects[i] = newGameobject;
+                    break; // Found a suitable place to put the gameObject hopefully...
+                }
+                else
+                {
+                    Vector2 sizeX = new Vector2(size.x, 0);
+                    Vector2 sizeY = new Vector2(0, size.z);
+                    if (!IsOutofBounds(endedAt + sizeX))
+                    {
+                        endedAt += sizeX;
+                    }
+                    else if (!IsOutofBounds(endedAt + sizeY))
+                    {
+                        endedAt += sizeY;
+                        endedAt = new Vector2(0, endedAt.y);
+                    }
+                    else
+                    {
+                        return;
+                    }
+                    startAt = endedAt;
+                }
+
+
+            } while (found == false);
+
+        }
+    }
+
+    private bool FarEnoughAway(Vector3 position, GameObject[] gameObjects, float distance)
+    {
+        for (int i = 0; i < gameObjects.Length; i++)
+        {
+            if (gameObjects[i] == null) break;
+            Vector3 otherPosition = gameObjects[i].transform.position;
+            if (Vector3.Distance(position, otherPosition) < distance)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public bool FindFlatSpace(out Vector3? chunkPosition, Vector3 size, float heightMultiplier, float tolerance, Vector2 startAt)
+    {
+        if (IsOutofBounds(startAt))
+        {
+
+        }
+        float startHeight = heightMap[(int)startAt.x, (int)startAt.y] * heightMultiplier;
+        chunkPosition = new Vector3(startAt.x, startHeight, startAt.y);
+        if (IsOutofBounds(startAt)) return false;
+        for (int y = (int)startAt.y; y < heightMap.GetLength(1) - size.y; y++)
+        {
+            for (int x = (int)startAt.x; x < heightMap.GetLength(0) - size.x; x++)
+            {
+                if (IsOutofBounds(new Vector2(x, y)))
+                {
+
+                }
                 float height = heightMap[x, y] * heightMultiplier;
                 Vector2 testPosition = new Vector2(x, y);
                 if (FlatSpace(testPosition, size, tolerance))
                 {
-                    chunkPosition = new Vector3(testPosition.x, height, testPosition.y) + new Vector3(size.x / 2, 0, size.z / 2);
+                    chunkPosition = new Vector3(testPosition.x, height, testPosition.y);
                     return true;
                 }
             }
         }
         return false;
     }
+
+    private bool IsOutofBounds(Vector2 point)
+    {
+        if (point.x > 126 || point.y > 126)
+        {
+            return true;
+        }
+        return false;
+    }
+
     private bool FlatSpace(Vector2 position, Vector2 fitSpace, float tolerance)
     {
         int startX = (int)position.x;
@@ -368,12 +484,17 @@ public struct ChunkData
         int endX = (int)fitSpace.x + startX;
         int endY = (int)fitSpace.y + startY;
 
+        if (IsOutofBounds(new Vector2(startX, startY)))
+        {
+
+        }
         float startHeight = Mathf.Abs(heightMap[startX, startY]);
 
         for (int y = startY; y < endY; y++)
         {
             for (int x = startX; x < endX; x++)
             {
+                if (IsOutofBounds(new Vector2(x, y))) return false;
                 float testHeight = Mathf.Abs(heightMap[x, y]);
                 float testTolerance = Mathf.Abs(testHeight - startHeight);
                 if (testTolerance > tolerance)
@@ -384,4 +505,16 @@ public struct ChunkData
         }
         return true;
     }
+}
+
+[Serializable]
+public struct ChunkObject
+{
+    public GameObject gameObject;
+    [Range(0, 128)]
+    public float minimumSpacingForThis;
+    [Range(0, 128)]
+    public float minimumSpacingForOther;
+    public int amount;
+    public float steepTolerance;
 }
