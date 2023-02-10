@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class ChunkLoader : MonoBehaviour
 {
@@ -69,9 +72,9 @@ public class ChunkLoader : MonoBehaviour
         }
     }
 
-    Dictionary<Vector2, Chunk> chunks = new Dictionary<Vector2, Chunk>();
+    public Dictionary<Vector2, Chunk> chunks = new Dictionary<Vector2, Chunk>();
 
-    private void StartLoadChunks()
+    public void StartLoadChunks()
     {
         int loadChunksAmount = Mathf.RoundToInt(loadChunksDistance / chunkSize);
 
@@ -102,7 +105,7 @@ public class ChunkLoader : MonoBehaviour
             }
         }
     }
-    private void LoadChunks()
+    public void LoadChunks()
     {
         int loadChunksAmount = Mathf.RoundToInt(loadChunksDistance / chunkSize);
         for (int yOffset = -loadChunksAmount; yOffset <= loadChunksAmount; yOffset++)
@@ -144,3 +147,49 @@ public class ChunkLoader : MonoBehaviour
         }
     }
 }
+
+
+#if UNITY_EDITOR
+[CustomEditor(typeof(ChunkLoader))]
+class ChunkLoaderEditor : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        ChunkLoader parent = (ChunkLoader)target;
+            
+        base.OnInspectorGUI();
+
+        if(GUILayout.Button("Create Chunks"))
+        {
+            for (int i = parent.transform.childCount - 1; i >= 0; i--)
+            {
+                DestroyImmediate(parent.transform.GetChild(i).gameObject);
+            }
+            parent.chunks.Clear();
+            parent.LoadChunks();
+            for(int i = 0; i < parent.transform.childCount; i++)
+            {
+                Chunk chunk = parent.transform.GetChild(i).GetComponent<Chunk>();
+                chunk.CheckThreadQueue();
+            }
+            for (int i = 0; i < parent.transform.childCount; i++)
+            {
+                Chunk chunk = parent.transform.GetChild(i).GetComponent<Chunk>();
+                chunk.CheckThreadQueue();
+
+                chunk.AddObjects();
+            }
+        }
+        if(GUILayout.Button("Clear Chunks"))
+        {
+            parent.chunks.Clear();
+            for (int i = parent.transform.childCount -1; i >= 0; i--)
+            {
+                DestroyImmediate(parent.transform.GetChild(i).gameObject);
+            }
+        }
+    }
+}
+
+
+#endif
