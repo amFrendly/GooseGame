@@ -51,7 +51,9 @@ MonoBehaviour:
   meshSimplification: 0
   swapDetailOnDistance:
   - 0
+  - 200
   - 400
+  - 600
   - 800
   tryFit:
   - gameObject: {fileID: 6184397222337772909, guid: 43a927ac0cc861348a1238f468b0302b, type: 3}
@@ -59,8 +61,8 @@ MonoBehaviour:
     minimumSpacingForOther: 0
     keepDistanceFromOther:
     - {fileID: 0}
-    amount: 100
-    steepTolerance: 0.01
+    amount: 5
+    steepTolerance: 0.001
 --- !u!33 &7472673700152389837
 MeshFilter:
   m_ObjectHideFlags: 0

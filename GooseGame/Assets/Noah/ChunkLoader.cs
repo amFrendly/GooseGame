@@ -90,20 +90,6 @@ public class ChunkLoader : MonoBehaviour
                 }
             }
         }
-
-        for (int yOffset = -loadChunksAmount; yOffset <= loadChunksAmount; yOffset++)
-        {
-            for (int xOffset = -loadChunksAmount; xOffset <= loadChunksAmount; xOffset++)
-            {
-                Vector2 viewChunkCoord = new Vector2(currentChunkCoord.x + xOffset, currentChunkCoord.y + yOffset);
-
-                if (chunks.ContainsKey(viewChunkCoord))
-                {
-                    float distance = Vector2.Distance(currentChunkCoord, viewChunkCoord);
-                    chunks[viewChunkCoord].SwapMesh(distance);
-                }
-            }
-        }
     }
     public void LoadChunks()
     {
@@ -135,6 +121,8 @@ public class ChunkLoader : MonoBehaviour
         newChunk.transform.position = position * chunkSize;
         Chunk chunkComponent = newChunk.GetComponent<Chunk>();
         chunkComponent.player = player;
+        float distance = Vector2.Distance(player.position, newChunk.transform.position);
+        chunks[new Vector2(position.x, position.z)].SetMeshSimplificationOnDistance(distance);
         chunkComponent.SetChunkInformation(seed, scale, octaves, persistance, lacunarity, heightMultiplier, heightCurve);
         return chunkComponent;
     }

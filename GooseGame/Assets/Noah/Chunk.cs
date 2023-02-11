@@ -14,7 +14,7 @@ public class Chunk : MonoBehaviour
     [NonSerialized]
     public Transform player;
 
-    Mesh[] simplify = new Mesh[3];
+    Mesh[] simplify = new Mesh[5];
     int selected = 0;
     int lastSelected = -1;
 
@@ -49,10 +49,29 @@ public class Chunk : MonoBehaviour
 
     private void OnValidate()
     {
-        if (swapDetailOnDistance.Length > 3)
+        if (swapDetailOnDistance.Length > 5)
         {
-            swapDetailOnDistance = new float[3];
+            swapDetailOnDistance = new float[5];
         }
+    }
+
+    public void SetMeshSimplificationOnDistance(float distance)
+    {
+        int selected = 0;
+
+        for (int i = simplify.Length - 1; i >= 0; i--)
+        {
+            if (distance >= swapDetailOnDistance[i])
+            {
+                selected = i;
+            }
+            else
+            {
+                continue;
+            }
+        }
+
+        meshSimplification = selected;
     }
 
     public Vector3[] CalculateNormals(Vector3[] verticies, int[] triangles)
@@ -96,10 +115,10 @@ public class Chunk : MonoBehaviour
     {
         for (int i = tryFit.Count - 1; i >= 0; i--)
         {
-            //chunkData.AddObject(tryFit[i], transform, noiseData.heightMultiplier);
+            chunkData.AddObject(tryFit[i], transform, noiseData.heightMultiplier);
 
-            int meshSimplificationValue = (int)Mathf.Pow(2, meshSimplification + meshStartSimplifiaction);
-            chunkData.AddChunkObject(tryFit[i], transform, noiseData.heightMultiplier, meshSimplificationValue);
+            //int meshSimplificationValue = (int)Mathf.Pow(2, meshSimplification + meshStartSimplifiaction);
+            //chunkData.AddChunkObject(tryFit[i], transform, noiseData.heightMultiplier, meshSimplificationValue);
         }
     }
     public void SwapMesh(float distance)
@@ -118,7 +137,7 @@ public class Chunk : MonoBehaviour
             if (selected == lastSelected) return;
 
             selected = i;
-            meshSimplification = selected;
+            meshSimplification = selected + meshStartSimplifiaction;
 
             if (simplify[i] == null)
             {
@@ -137,7 +156,7 @@ public class Chunk : MonoBehaviour
         Vector2 offset = new Vector2(transform.position.x, transform.position.z);
 
         noiseData = new NoiseData(seed, scale, octaves, persistance, lacunarity, heightMultiplier, heightCurve, offset);
-        meshSimplification = 0;
+        meshSimplification = meshStartSimplifiaction;
         RequestChunkData(OnChunkDataRecieved);
     }
 
@@ -227,11 +246,7 @@ public class Chunk : MonoBehaviour
 
         mesh.vertices = meshData.vertices;
         mesh.triangles = meshData.triangles;
-
-        DebugTime.Start();
-        mesh.normals = CalculateNormals(meshData.vertices, meshData.triangles);
-        //mesh.RecalculateNormals();
-        DebugTime.Stop();
+        mesh.normals = meshData.normals;
     }
     private MeshData? CreateShape()
     {
@@ -244,7 +259,9 @@ public class Chunk : MonoBehaviour
         int quadsRowAmount = ChunkLoader.chunkSize / meshSimplificationValue;
         int[] triangles = GetTriangles(quadsRowAmount);
 
-        return new MeshData(verticies, triangles);
+        Vector3[] normals = CalculateNormals(verticies, triangles);
+
+        return new MeshData(verticies, triangles, normals);
     }
     #endregion
     #region Threading
@@ -363,11 +380,13 @@ public struct MeshData
 {
     public Vector3[] vertices;
     public int[] triangles;
+    public Vector3[] normals;
 
-    public MeshData(Vector3[] verticies, int[] triangles)
+    public MeshData(Vector3[] verticies, int[] triangles, Vector3[] normals)
     {
         this.vertices = verticies;
         this.triangles = triangles;
+        this.normals = normals;
     }
 }
 public struct ChunkData
