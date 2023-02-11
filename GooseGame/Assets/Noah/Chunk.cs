@@ -9,7 +9,7 @@ public class Chunk : MonoBehaviour
     [Range(0, 4)]
     int meshSimplification = 1;
 
-    int meshStartSimplifiaction = 2;
+    int meshStartSimplifiaction = 0;
 
     [NonSerialized]
     public Transform player;
@@ -35,7 +35,8 @@ public class Chunk : MonoBehaviour
 
         if (!once) return;
         if (simplify[meshSimplification] == null) return;
-        chunkData.GetFlatSpaces(simplify[meshSimplification], meshSimplification, 0.01f);
+        //chunkData.GetFlatSpaces(simplify[meshSimplification], meshSimplification + meshStartSimplifiaction, 0.001f);
+
         //AddObjects();
         once = false;
     }
@@ -54,14 +55,53 @@ public class Chunk : MonoBehaviour
         }
     }
 
+    public Vector3[] CalculateNormals(Vector3[] verticies, int[] triangles)
+    {
+        Vector3[] vertexNormals = new Vector3[verticies.Length];
+        int triangleCount = triangles.Length / 3;
+        for (int i = 0; i < triangleCount; i++)
+        {
+            int triangleIndex = i * 3;
+            int vertexIndexA = triangles[triangleIndex];
+            int vertexIndexB = triangles[triangleIndex + 1];
+            int vertexIndexC = triangles[triangleIndex + 2];
+
+            Vector3 triangleNormal = SurfaceNormalFromIndicies(vertexIndexA, vertexIndexB, vertexIndexC, verticies);
+            vertexNormals[vertexIndexA] += triangleNormal;
+            vertexNormals[vertexIndexB] += triangleNormal;
+            vertexNormals[vertexIndexC] += triangleNormal;
+        }
+
+        for (int i = 0; i < vertexNormals.Length; i++)
+        {
+            vertexNormals[i].Normalize();
+        }
+
+        return vertexNormals;
+    }
+
+    Vector3 SurfaceNormalFromIndicies(int triangleA, int triangleB, int triangleC, Vector3[] verticies)
+    {
+        Vector3 pointA = verticies[triangleA];
+        Vector3 pointB = verticies[triangleB];
+        Vector3 pointC = verticies[triangleC];
+
+        Vector3 sideAB = pointB - pointA;
+        Vector3 sideAC = pointC - pointA;
+
+        return Vector3.Cross(sideAB, sideAC).normalized;
+    }
+
     public void AddObjects()
     {
         for (int i = tryFit.Count - 1; i >= 0; i--)
         {
-            chunkData.AddObject(tryFit[i], transform, noiseData.heightMultiplier);
+            //chunkData.AddObject(tryFit[i], transform, noiseData.heightMultiplier);
+
+            int meshSimplificationValue = (int)Mathf.Pow(2, meshSimplification + meshStartSimplifiaction);
+            chunkData.AddChunkObject(tryFit[i], transform, noiseData.heightMultiplier, meshSimplificationValue);
         }
     }
-
     public void SwapMesh(float distance)
     {
         for (int i = simplify.Length - 1; i >= 0; i--)
@@ -188,7 +228,10 @@ public class Chunk : MonoBehaviour
         mesh.vertices = meshData.vertices;
         mesh.triangles = meshData.triangles;
 
-        mesh.RecalculateNormals();
+        DebugTime.Start();
+        mesh.normals = CalculateNormals(meshData.vertices, meshData.triangles);
+        //mesh.RecalculateNormals();
+        DebugTime.Stop();
     }
     private MeshData? CreateShape()
     {
@@ -332,21 +375,21 @@ public struct ChunkData
     [NonSerialized]
     public float[,] heightMap;
     [NonSerialized]
-    public Dictionary<GameObject, GameObject[]> chunkObjects;
+    public Dictionary<GameObject, List<GameObject>> chunkObjects;
 
     public ChunkData(float[,] heightMap)
     {
         this.heightMap = heightMap;
-        chunkObjects = new Dictionary<GameObject, GameObject[]>();
+        chunkObjects = new Dictionary<GameObject, List<GameObject>>();
 
-        flatSpaceLeft = new List<Rect>();
+        flatSpaceLeft = new Dictionary<Vector2, Vector2>();
     }
-    private List<Rect> flatSpaceLeft;
+    private Dictionary<Vector2, Vector2> flatSpaceLeft;
 
     public void GetFlatSpaces(Mesh mesh, int meshSimlification, float tolerance)
     {
         Vector3[] normals = mesh.normals;
-        int vertexAmountWidth = normals.Length / (int)Mathf.Pow(2, meshSimlification);
+        int vertexAmountWidth = ChunkLoader.chunkSize / (int)Mathf.Pow(2, meshSimlification);
 
         for (int i = 0; i < normals.Length; i++)
         {
@@ -355,15 +398,99 @@ public struct ChunkData
             float dot = Vector3.Dot(normals[i], Vector3.up);
             if (dot >= 1 - tolerance)
             {
-                // Add Point
-               // Debug.Log();
+                // Add flat Verticies
+                Vector2 position = new Vector2(x, y);
+                flatSpaceLeft.Add(position, position);
             }
             else
             {
                 // skip indexes based on how far from tolerance
             }
         }
+    }
 
+    public void AddChunkObject(ChunkObject chunkObject, Transform parent, float heightMultiplier, int meshSimplificationValue)
+    {
+        if (chunkObjects.ContainsKey(chunkObject.gameObject))
+        {
+            return;
+        }
+        else
+        {
+            TryToAdd(chunkObject, parent, heightMultiplier, meshSimplificationValue);
+        }
+    }
+
+    private void TryToAdd(ChunkObject chunkObject, Transform parent, float heightMultiplier, int meshSimplificationValue)
+    {
+        List<GameObject> gameObjects = new List<GameObject>();
+        chunkObjects.Add(chunkObject.gameObject, gameObjects);
+
+        Vector3 size3D = chunkObject.gameObject.GetComponent<MeshFilter>().sharedMesh.bounds.size;
+        size3D = new Vector3(size3D.x, 0, size3D.z);
+        Vector2 size = new Vector2(Mathf.RoundToInt(size3D.x), Mathf.RoundToInt(size3D.z));
+
+        for (int i = 0; i < chunkObject.amount; i++)
+        {
+            Vector2 position = new Vector2();
+            bool fit = false;
+            foreach (Vector2 testPosition in flatSpaceLeft.Keys)
+            {
+                if (FitObject(testPosition, size))
+                {
+                    position = testPosition;
+                    fit = true;
+                    break;
+                }
+            }
+
+            if (fit)
+            {
+                RemoveFromSpaceLeft(position, size);
+                // Spawn GameObject
+
+                float worldPositionX = position.x * meshSimplificationValue;
+                float worldPositionZ = position.y * meshSimplificationValue;
+                float height = heightMap[(int)position.x, (int)position.y] * heightMultiplier;
+
+                Vector3 worldPosition = parent.position + new Vector3(worldPositionX, height, worldPositionZ) + size3D / 2;
+
+                GameObject newGameobject = GameObject.Instantiate(chunkObject.gameObject, parent);
+                newGameobject.transform.position = worldPosition;
+                gameObjects.Add(newGameobject);
+            }
+            else
+            {
+                return;
+            }
+        }
+    }
+
+    private void RemoveFromSpaceLeft(Vector2 position, Vector2 size)
+    {
+        for (int y = 0; y < (int)size.y; y++)
+        {
+            for (int x = 0; x < (int)size.x; x++)
+            {
+                flatSpaceLeft.Remove(position + new Vector2(x, y));
+            }
+        }
+    }
+
+    private bool FitObject(Vector2 position, Vector2 size)
+    {
+        for (int y = 0; y < (int)size.y; y++)
+        {
+            for (int x = 0; x < (int)size.x; x++)
+            {
+                if (!flatSpaceLeft.ContainsKey(position + new Vector2(x, y)))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     #region Wokring But Slow
@@ -375,20 +502,18 @@ public struct ChunkData
         }
         else
         {
-            DebugTime.Start();
             CheckToAdd(chunkObject, parent, heightMultiplier);
-            DebugTime.Stop();
         }
     }
     private void CheckToAdd(ChunkObject chunkObject, Transform parent, float heightMultiplier)
     {
-        GameObject[] gameObjects = new GameObject[chunkObject.amount];
+        List<GameObject> gameObjects = new List<GameObject>();
         chunkObjects.Add(chunkObject.gameObject, gameObjects);
         Vector2 startAt = new Vector2();
         Vector3 size = chunkObject.gameObject.GetComponent<MeshFilter>().sharedMesh.bounds.size;
         Vector2 endedAt = startAt;
 
-        for (int i = 0; i < gameObjects.Length; i++)
+        for (int i = 0; i < chunkObject.amount; i++)
         {
 
             bool found = false;
@@ -403,7 +528,7 @@ public struct ChunkData
                 {
                     GameObject newGameobject = GameObject.Instantiate(chunkObject.gameObject, parent);
                     newGameobject.transform.position = worldPosition;
-                    gameObjects[i] = newGameobject;
+                    gameObjects.Add(newGameobject);
                     break; // Found a suitable place to put the gameObject hopefully...
                 }
                 else
@@ -432,11 +557,10 @@ public struct ChunkData
 
         }
     }
-    private bool FarEnoughAway(Vector3 position, GameObject[] gameObjects, float distance)
+    private bool FarEnoughAway(Vector3 position, List<GameObject> gameObjects, float distance)
     {
-        for (int i = 0; i < gameObjects.Length; i++)
+        for (int i = 0; i < gameObjects.Count; i++)
         {
-            if (gameObjects[i] == null) break;
             Vector3 otherPosition = gameObjects[i].transform.position;
             if (Vector3.Distance(position, otherPosition) < distance)
             {
@@ -451,9 +575,6 @@ public struct ChunkData
     }
     public bool FindFlatSpace(out Vector3? chunkPosition, Vector3 size, float heightMultiplier, float tolerance, Vector2 startAt)
     {
-        startAt = RoundToInts(startAt);
-        size = RoundToInts(size);
-
         float startHeight = heightMap[(int)startAt.x, (int)startAt.y] * heightMultiplier;
         chunkPosition = new Vector3(startAt.x, startHeight, startAt.y);
         if (IsOutofBounds(startAt)) return false;
