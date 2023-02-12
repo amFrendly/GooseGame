@@ -53,6 +53,7 @@ public class ChunkLoader : MonoBehaviour
 
     private void Start()
     {
+        chunks = new Dictionary<Vector2, Chunk>();
         StartLoadChunks();
         Vector2 playerPos = new Vector2(player.position.x, player.position.z);
         oldPos = playerPos;
@@ -72,7 +73,7 @@ public class ChunkLoader : MonoBehaviour
         }
     }
 
-    public Dictionary<Vector2, Chunk> chunks = new Dictionary<Vector2, Chunk>();
+    public Dictionary<Vector2, Chunk> chunks;
 
     public void StartLoadChunks()
     {
@@ -91,6 +92,8 @@ public class ChunkLoader : MonoBehaviour
             }
         }
     }
+
+
     public void LoadChunks()
     {
         int loadChunksAmount = Mathf.RoundToInt(loadChunksDistance / chunkSize);
@@ -102,7 +105,8 @@ public class ChunkLoader : MonoBehaviour
 
                 if (chunks.ContainsKey(viewChunkCoord))
                 {
-                    float distance = Vector2.Distance(currentChunkCoord * chunkSize, viewChunkCoord * chunkSize);
+                    Vector3 center = new Vector3(viewChunkCoord.x * chunkSize, 0, viewChunkCoord.y * chunkSize) + new Vector3(chunkSize, 0, chunkSize) / 2;
+                    float distance = Vector3.Distance(center, player.position);
                     chunks[viewChunkCoord].SwapMesh(distance);
                 }
                 else
@@ -111,7 +115,6 @@ public class ChunkLoader : MonoBehaviour
                 }
             }
         }
-
     }
 
     private Chunk CreateChunk(Vector3 position)
@@ -121,7 +124,8 @@ public class ChunkLoader : MonoBehaviour
         newChunk.transform.position = position * chunkSize;
         Chunk chunkComponent = newChunk.GetComponent<Chunk>();
         chunkComponent.player = player;
-        float distance = Vector2.Distance(player.position, newChunk.transform.position);
+        Vector3 centerOffset = new Vector3(chunkSize, 0, chunkSize) / 2;
+        float distance = Vector3.Distance(player.position, newChunk.transform.position + centerOffset);
         chunks[new Vector2(position.x, position.z)].SetMeshSimplificationOnDistance(distance);
         chunkComponent.SetChunkInformation(seed, scale, octaves, persistance, lacunarity, heightMultiplier, heightCurve);
         return chunkComponent;
@@ -144,10 +148,10 @@ class ChunkLoaderEditor : Editor
     public override void OnInspectorGUI()
     {
         ChunkLoader parent = (ChunkLoader)target;
-            
+
         base.OnInspectorGUI();
 
-        if(GUILayout.Button("Create Chunks"))
+        if (GUILayout.Button("Create Chunks"))
         {
             for (int i = parent.transform.childCount - 1; i >= 0; i--)
             {
@@ -155,7 +159,7 @@ class ChunkLoaderEditor : Editor
             }
             parent.chunks.Clear();
             parent.LoadChunks();
-            for(int i = 0; i < parent.transform.childCount; i++)
+            for (int i = 0; i < parent.transform.childCount; i++)
             {
                 Chunk chunk = parent.transform.GetChild(i).GetComponent<Chunk>();
                 chunk.CheckThreadQueue();
@@ -168,10 +172,10 @@ class ChunkLoaderEditor : Editor
                 chunk.AddObjects();
             }
         }
-        if(GUILayout.Button("Clear Chunks"))
+        if (GUILayout.Button("Clear Chunks"))
         {
             parent.chunks.Clear();
-            for (int i = parent.transform.childCount -1; i >= 0; i--)
+            for (int i = parent.transform.childCount - 1; i >= 0; i--)
             {
                 DestroyImmediate(parent.transform.GetChild(i).gameObject);
             }

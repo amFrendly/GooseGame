@@ -59,10 +59,16 @@ MonoBehaviour:
   - gameObject: {fileID: 6184397222337772909, guid: 43a927ac0cc861348a1238f468b0302b, type: 3}
     minimumSpacingForThis: 40
     minimumSpacingForOther: 0
-    keepDistanceFromOther:
-    - {fileID: 0}
-    amount: 5
+    keepDistanceFromOther: []
+    amount: 10
     steepTolerance: 0.001
+  - gameObject: {fileID: 117604, guid: 9469bb1d3aa88ca40aa4079e96a27f8e, type: 3}
+    minimumSpacingForThis: 40
+    minimumSpacingForOther: 128
+    keepDistanceFromOther:
+    - {fileID: 6184397222337772909, guid: 43a927ac0cc861348a1238f468b0302b, type: 3}
+    amount: 20
+    steepTolerance: 0.01
 --- !u!33 &7472673700152389837
 MeshFilter:
   m_ObjectHideFlags: 0
