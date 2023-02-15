@@ -2,6 +2,8 @@ using UnityEngine;
 using System;
 using System.Threading;
 using System.Collections.Generic;
+using System.Linq;
+using Unity.VisualScripting;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -39,10 +41,9 @@ public class Chunk : MonoBehaviour
 
         if (!once) return;
         if (simplify[meshSimplification] == null) return;
-        if(transform.position == new Vector3(0, 0, -128))
-        {
 
-        }
+        //chunkData.FillSpaces(simplify[meshSimplification].normals, meshSimplification);
+
         AddObjects();
         once = false;
     }
@@ -117,7 +118,6 @@ public class Chunk : MonoBehaviour
 
         return Vector3.Cross(sideAB, sideAC).normalized;
     }
-
     public void AddObjects()
     {
         for (int i = 0; i < tryFit.Count; i++)
@@ -354,18 +354,6 @@ public class Chunk : MonoBehaviour
         }
     }
     #endregion
-
-    public bool ExistsInDictionary()
-    {
-        Dictionary<Vector2, Chunk> chunks = transform.GetComponentInParent<ChunkLoader>().chunks;
-        Vector2 key = new Vector2(transform.position.x, transform.position.z) / ChunkLoader.chunkSize;
-        if (chunks.ContainsKey(key))
-        {
-            return true;
-        }
-        return false;
-    }
-
 }
 
 public struct NoiseData
@@ -415,7 +403,71 @@ public struct ChunkData
     {
         this.heightMap = heightMap;
         chunkObjects = new Dictionary<GameObject, List<GameObject>>();
+
+        spaceLeft = new Dictionary<Vector2, Dictionary<float, List<Vector2>>>();
     }
+
+    Dictionary<Vector2, Dictionary<float, List<Vector2>>> spaceLeft;
+
+    #region Trying Something Faster
+
+    public void FillSpaces(Vector3[] normals, int meshSimplification)
+    {
+        spaceLeft.Clear();
+
+        int meshSimplificationValue = (int)Mathf.Pow(2, meshSimplification);
+        int normalPosition = (ChunkLoader.chunkSize / meshSimplificationValue) + 1;
+        int size = normalPosition;
+
+        for (int i = 0; i < normals.Length; i++)
+        {
+            int x = i % normalPosition;
+            int y = i / normalPosition;
+
+            Vector2 addPosition = new Vector2(x, y);
+            Vector2 addSize = new Vector2(size, size);
+            float addSteepness = Vector3.Dot(normals[i], Vector3.up);
+
+            Dictionary<float, List<Vector2>> steepnessPositions = new Dictionary<float, List<Vector2>>();
+            steepnessPositions.Add(addSteepness, new List<Vector2> { addPosition });
+            KeyValuePair<Vector2, Dictionary<float, List<Vector2>>> space = new KeyValuePair<Vector2, Dictionary<float, List<Vector2>>>(addSize, steepnessPositions);
+            if (TryMerge(space) == false)
+            {
+                spaceLeft.Add(space.Key, space.Value);
+            }
+        }
+    }
+
+    bool TryMerge(KeyValuePair<Vector2, Dictionary<float, List<Vector2>>> space)
+    {
+        bool merge = false;
+
+        // Check if the Size is already included in the SpaceLeft
+        if (spaceLeft.ContainsKey(space.Key))
+        {
+            Dictionary<float, List<Vector2>> steepnessPosition = space.Value;
+
+            spaceLeft[space.Key].AddRange(space.Value);
+
+            merge = true;
+        }
+
+        return merge;
+    }
+
+    void Split(Vector2 size, Vector2 position, Vector2 positionWithin)
+    {
+
+    }
+
+    List<Vector2> GetPositions(Vector2 size, float steepness)
+    {
+        List<Vector2> positions = new List<Vector2>();
+
+        return positions;
+    }
+
+    #endregion
 
     #region Wokring But Slow
     public void AddObject(ChunkObject chunkObject, List<ChunkObject> tryFit, Transform parent, float heightMultiplier)
@@ -502,7 +554,7 @@ public struct ChunkData
                 if (gameObjects[i].name != alreadyInChunk[k].gameObject.name) break;
                 if (chunkObjects.TryGetValue(alreadyInChunk[k].gameObject, out List<GameObject> check))
                 {
-                    for(int x = 0; x < check.Count; x++)
+                    for (int x = 0; x < check.Count; x++)
                     {
                         Vector3 otherPosition = check[k].gameObject.transform.position + parent.position;
                         if (Vector3.Distance(position, otherPosition) < distance)
@@ -597,8 +649,8 @@ public struct ChunkData
         return height;
     }
     #endregion
-
 }
+
 
 [Serializable]
 public struct ChunkObject
@@ -612,22 +664,3 @@ public struct ChunkObject
     public int amount;
     public float steepTolerance;
 }
-
-
-#if UNITY_EDITOR
-[CustomEditor(typeof(Chunk))]
-public class ChunkEditor : Editor
-{
-    public override void OnInspectorGUI()
-    {
-        Chunk parent = (Chunk)target;
-
-        if (GUILayout.Button("Check if Dictionary Contains"))
-        {
-            Debug.Log(parent.ExistsInDictionary().ToString());
-        }
-
-        base.OnInspectorGUI();
-    }
-}
-#endif
