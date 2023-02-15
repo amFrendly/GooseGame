@@ -65,7 +65,7 @@ public class MeshGenerator : MonoBehaviour
 
         offset = new Vector2(transform.position.x, transform.position.z);
 
-        float[,] heightMap = Noise.GenerateNoiseMap(chunkSize + 1, chunkSize + 1, seed, scale, octaves, persistance, lacunarity, offset);
+        float[,] heightMap = Noise.GenerateNoiseMap(chunkSize + 1, chunkSize + 1, seed, scale, octaves, persistance, lacunarity, heightCurve, offset);
 
         for (int z = 0, i = 0; z <= chunkSize; z+= meshSimplificationValue)
         {

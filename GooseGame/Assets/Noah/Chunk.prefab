@@ -51,8 +51,24 @@ MonoBehaviour:
   meshSimplification: 0
   swapDetailOnDistance:
   - 0
+  - 200
   - 400
+  - 600
   - 800
+  tryFit:
+  - gameObject: {fileID: 6184397222337772909, guid: 43a927ac0cc861348a1238f468b0302b, type: 3}
+    minimumSpacingForThis: 40
+    minimumSpacingForOther: 0
+    keepDistanceFromOther: []
+    amount: 10
+    steepTolerance: 0.001
+  - gameObject: {fileID: 117604, guid: 9469bb1d3aa88ca40aa4079e96a27f8e, type: 3}
+    minimumSpacingForThis: 40
+    minimumSpacingForOther: 128
+    keepDistanceFromOther:
+    - {fileID: 6184397222337772909, guid: 43a927ac0cc861348a1238f468b0302b, type: 3}
+    amount: 20
+    steepTolerance: 0.01
 --- !u!33 &7472673700152389837
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -110,7 +126,7 @@ MeshCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 674519064550767584}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 94d33b590e26fe745826a011498c7507, type: 2}
   m_IsTrigger: 0
   m_Enabled: 0
   serializedVersion: 4

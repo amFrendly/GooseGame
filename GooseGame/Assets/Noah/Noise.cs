@@ -5,8 +5,9 @@ using UnityEngine;
 public static class Noise
 {
 
-    public static float[,] GenerateNoiseMap(int width, int height, int seed, float scale, int octaves, float persistance, float lacunarity, Vector2 offset)
+    public static float[,] GenerateNoiseMap(int width, int height, int seed, float scale, int octaves, float persistance, float lacunarity, AnimationCurve _heightCurve, Vector2 offset)
     {
+        AnimationCurve heightCurve = new AnimationCurve(_heightCurve.keys);
         float[,] noiseMap = new float[width, height];
         Vector2[] octaveOffset = new Vector2[octaves];
 
@@ -52,7 +53,7 @@ public static class Noise
                 if (noiseHeight > maxNoiseHeight) maxNoiseHeight = noiseHeight;
                 if (noiseHeight < minNoiseHeight) minNoiseHeight = noiseHeight;
 
-                noiseMap[x, y] = noiseHeight;
+                noiseMap[x, y] = heightCurve.Evaluate(noiseHeight);
             }
         }
 

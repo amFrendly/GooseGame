@@ -16,6 +16,11 @@ public class ToggleChunkCollider : MonoBehaviour
         chunk.ActivateCollder();
     }
 
+    private void OnTriggerStay(Collider other)
+    {
+        chunk.ActivateCollder();
+    }
+
     private void OnTriggerExit(Collider other)
     {
         chunk.DeactivateCollder();
